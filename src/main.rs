@@ -19,10 +19,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut last_update = SystemTime::now();
           
     loop {
+        
         let mut timestamp = last_update
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();    
+
+        println!("Looking for events after {}...", timestamp);
             
         let request_url = format!(
             "https://api.opensea.io/api/v1/events?asset_contract_address={contract}&only_opensea=false&offest={offset}&limit={limit}&occurred_after={occurred_after}",
@@ -39,14 +42,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 for event in events {            
                     event.tweet().await?;                    
                 }
+                last_update = SystemTime::now();
             } else {
-                println!("No events found (inner)");    
+                println!("No events found...");    
             }
-        } else {
-            println!("No events found");
         }
         
-        last_update = SystemTime::now();
         sleep(Duration::new(60, 0));   
     }
     
