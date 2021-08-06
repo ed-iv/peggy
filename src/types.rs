@@ -110,7 +110,10 @@ impl Peggy {
 
     pub async fn get_notification(&self, event: Event) -> Result<Notification, Box<dyn std::error::Error>> {
         let pegz_name = format!("PEGZ #{}", &event.asset.token_id);   
-        let symbol = &event.payment_token.symbol; 
+        let mut symbol = "";
+        if let Some(payment_token) = &event.payment_token {
+            let symbol = payment_token.symbol.clone();
+        } 
         let image = event.get_image().await?;
 
         let event_type: EventType = event.event_type.as_str().into();
@@ -161,7 +164,7 @@ pub struct Event {
     pub id: u128,    
     pub event_type: String, 
     pub asset: Pegz,    
-    pub payment_token: PaymentToken,
+    pub payment_token: Option<PaymentToken>,
     pub total_price: Option<String>,
     pub bid_amount: Option<String>,
     pub starting_price: Option<String>,
