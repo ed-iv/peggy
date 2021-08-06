@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         String::from("https://api.opensea.io/api/v1/events"),
         format!("{}", "1628203057"),
         String::from("0x1eFf5ed809C994eE2f500F076cEF22Ef3fd9c25D"),                        
-        format!("{}", 10),
+        format!("{}", 20),
     );
 
     let tweeter = Tweeter::new();
@@ -40,10 +40,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {        
         let events = peggy.fetch_events().await?;
         if events.len() > 0 {
-            for event in events {
-                // if let EventType::Unknown = &event.event_type.as_str().into() {
-                //     continue;
-                // }
+            for event in events.into_iter().rev() {
+                if let EventType::Unknown = &event.event_type.as_str().into() {
+                    continue;
+                }
                 let notification = peggy.get_notification(event).await?;                
                 println!("{}", notification.message);
                 tweeter.tweet(notification).await?;
