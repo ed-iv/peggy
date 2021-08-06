@@ -112,7 +112,7 @@ impl Peggy {
         let pegz_name = format!("PEGZ #{}", &event.asset.token_id);   
         let mut symbol = "";
         if let Some(payment_token) = &event.payment_token {
-            let symbol = payment_token.symbol.clone();
+            symbol = payment_token.symbol.as_str();
         } 
         let image = event.get_image().await?;
 
