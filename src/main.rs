@@ -16,45 +16,48 @@ mod tweeter;
 
 use tweeter::Tweeter;
 
-use std::fmt::Display;
-
-
-use reqwest::Url;
-
-use crate::types::{Obj};
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
         
-    let timestamp = Utc::now().timestamp();
+    let timestamp = include_str!("../last-fetch");
+    
     let mut peggy = Peggy::new(
         String::from("https://api.opensea.io/api/v1/events"),
-        format!("{}", "1628276093"),
+        String::from(timestamp.trim()),
         String::from("0x1eFf5ed809C994eE2f500F076cEF22Ef3fd9c25D"),                        
         format!("{}", 20),
     );
-
     let tweeter = Tweeter::new();
 
-    
     loop {        
-        let events = peggy.fetch_events().await?;
-        if events.len() > 0 {
-            for event in events.into_iter().rev() {
-                if let EventType::Unknown = &event.event_type.as_str().into() {
-                    continue;
+        if let Ok(events) = peggy.fetch_events().await {
+            if events.len() > 0 {
+                for event in events.into_iter().rev() {
+                    let mut event_id = &event.id.clone();
+                    if let EventType::Unknown = &event.event_type.as_str().into() {
+                        println!("  »---> Skipping unknown EventType \n");
+                        peggy.update_last_fetch().unwrap_or(println!("Failed to update Peggy's last-fetch timestamp"));
+                        continue;                    
+                    }
+                    if let Ok(notification) = peggy.get_notification(event).await {
+                        println!("  »---> {}\n", notification.message);                
+                        if let Ok(tweet) = tweeter.tweet(notification).await {
+                            // Do nothing
+                        } else {
+                            println!("  »---> Failed to tweet notification\n");
+                        }
+                        peggy.update_last_fetch().unwrap_or(println!("Failed to update Peggy's last-fetch timestamp"));
+                    } else {
+                        println!("  »---> Unable to get notification from Event with ID: {}\n", event_id);
+                    }                                                     
                 }
-                let notification = peggy.get_notification(event).await?;                
-                println!("{}", notification.message);
-                tweeter.tweet(notification).await?;
-                peggy.last = format!("{}", Utc::now().timestamp());
-
+            } else {
+                println!("  »---> No events found...Sleeping\n");
             }
         } else {
-            println!("No events found...Sleeping");
+            println!("  »---> Unable to fetch events...trying again in 1 min\n ");
         }
         sleep(Duration::new(60, 0));   
     }
-    
     Ok(())
 }

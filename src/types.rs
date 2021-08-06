@@ -4,6 +4,8 @@ use crate::*;
 use std::{collections::HashMap, str::FromStr};
 use reqwest::Url;
 use bytes::Bytes;
+use std::io::Write;
+use std::fs::{File, OpenOptions};
 
 const WEI: u64 = 1_000_000_000_000_000_000;  
                
@@ -90,9 +92,16 @@ impl Peggy {
         }
     }
 
+    pub fn update_last_fetch(&self) -> Result<(), Error> {
+        let mut f = OpenOptions::new().write(true).truncate(true).open("../last-fetch")?;
+        f.write_all(format!("{}", Utc::now().timestamp()).as_bytes())?;
+        f.flush()?;
+        Ok(())
+    }
+
     pub async fn fetch_events(&self) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
         let url = self.build_url()?;
-        println!("({}) Fetching: {}", self.last, &url);
+        println!("Fetching Events @ {}\n  »---> URL: {}", self.last, &url);
         let response: Obj = reqwest::get(url).await?.json().await?; 
         Ok(response.asset_events)
     }
