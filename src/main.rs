@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let timestamp = Utc::now().timestamp();
     let mut peggy = Peggy::new(
         String::from("https://api.opensea.io/api/v1/events"),
-        format!("{}", "1628271530"),
+        format!("{}", "1628276093"),
         String::from("0x1eFf5ed809C994eE2f500F076cEF22Ef3fd9c25D"),                        
         format!("{}", 20),
     );
