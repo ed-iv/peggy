@@ -93,7 +93,7 @@ impl Peggy {
     }
 
     pub fn update_last_fetch(&self) -> Result<(), Error> {
-        let mut f = OpenOptions::new().write(true).truncate(true).open("../last-fetch")?;
+        let mut f = OpenOptions::new().write(true).truncate(true).open("last-fetch")?;
         f.write_all(format!("{}", Utc::now().timestamp()).as_bytes())?;
         f.flush()?;
         Ok(())
