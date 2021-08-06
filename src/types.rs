@@ -1,12 +1,15 @@
 use serde::Deserialize;
 use egg_mode::tweet::DraftTweet;
 use crate::*;
+use std::{collections::HashMap, str::FromStr};
+use reqwest::Url;
+use bytes::Bytes;
 
 const WEI: u64 = 1_000_000_000_000_000_000;  
                
 #[derive(Deserialize, Debug)]
 pub struct Obj {
-    pub asset_events: Option<Vec<Event>>,    
+    pub asset_events: Vec<Event>,    
 }
 
 #[derive(Deserialize, Debug)]
@@ -34,75 +37,149 @@ pub struct Pegz {
     pub image_url: String,    
 }
 
+#[derive(Deserialize, Debug, Clone, Copy)]
+pub enum EventType {
+    Bid,
+    List,
+    Sale,
+    Unknown
+}
+
+impl From<&str> for EventType {
+    fn from(input: &str) -> EventType {
+        match input {
+            "successful" => EventType::Sale,
+            "bid_entered" => EventType::Bid,
+            "created" => EventType::List,
+            _ => EventType::Unknown,
+        }
+    }    
+}
+
+#[derive(Debug)]
+pub struct Notification {    
+    pub message: String,
+    pub image: Bytes,
+}
+
+impl Notification {    
+    pub fn new(event: Event) -> Result<Self, ()> {
+        Err(())
+    }
+}
+
+pub struct Peggy {   
+    pub url: String,
+    pub last: String,
+    pub contract: String,    
+    pub limit: String,
+}
+
+impl Peggy {
+    pub fn new(
+        url: String,
+        last: String,
+        contract: String,    
+        limit: String,
+    ) -> Self {        
+        Self { 
+            url,
+            last,
+            contract,
+            limit,            
+        }
+    }
+
+    pub async fn fetch_events(&self) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
+        let url = self.build_url()?;
+        println!("({}) Fetching: {}", self.last, &url);
+        let response: Obj = reqwest::get(url).await?.json().await?; 
+        Ok(response.asset_events)
+    }
+
+    pub fn build_url(&self) -> Result<Url, Box<dyn std::error::Error>> {
+        let params = vec![
+            ("asset_contract_address", &self.contract),
+            ("occurred_after", &self.last),
+            ("limit", &self.limit)
+        ];
+        let url = Url::parse_with_params(self.url.as_str(), &params)?;
+        Ok(url)
+    }
+
+
+    pub async fn get_notification(&self, event: Event) -> Result<Notification, Box<dyn std::error::Error>> {
+        let pegz_name = format!("PEGZ #{}", &event.asset.token_id);   
+        let symbol = &event.payment_token.symbol; 
+        let image = event.get_image().await?;
+
+        let event_type: EventType = event.event_type.as_str().into();
+        let message = match event_type.clone() {
+            EventType::Bid => {                                
+                format!(
+                    "{} has a bid of {} {}!",                    
+                    pegz_name,
+                    in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                    symbol,                                        
+                )
+            },
+            EventType::List => {                
+                format!(
+                    "{} has just been listed for {} {}!",
+                    pegz_name,
+                    in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
+                    symbol,
+
+                )
+            },
+            EventType::Sale => {
+                
+                format!(
+                    "{} just sold for {} {}!",
+                    pegz_name,
+                    in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
+                    symbol,
+                )
+            },
+            EventType::Unknown => {
+                format!("Unknown event type")
+            },
+        };
+
+    
+        let notification = Notification {            
+            message,
+            image
+        };
+
+        Ok(notification)
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Event {
     pub id: u128,    
     pub event_type: String, 
     pub asset: Pegz,    
-    // pub payment_token: PaymentToken,
-    // pub total_price: String,
-    // pub bid_amount: Option<String>,
+    pub payment_token: PaymentToken,
+    pub total_price: Option<String>,
+    pub bid_amount: Option<String>,
+    pub starting_price: Option<String>,
 }
 
+pub fn in_eth(amount: &str) -> f64 {
+    amount.parse::<u128>().unwrap() as f64 / WEI as f64
+}
+
+
 impl Event {    
-    pub fn display(&self) {
-        let output = format!(
-            "Asset: PEGZ {} Event Type: {}",
-            self.asset.id,
-            self.event_type            
-        );
-
-        println!("{}", output);
-    } 
-
-    // pub fn sale_price_in_eth(&self) -> f64 {
-    //     self.total_price.parse::<u128>().unwrap() as f64 / WEI as f64
-    // }
-
-    // pub fn bid_price_in_eth(&self) -> f64 {
-    //     match &self.bid_amount {
-    //         Some(bid) => bid.parse::<u128>().unwrap() as f64 / WEI as f64,
-    //         None => 0.0,
-    //     }
-        
-    // }
-    
-    pub async fn tweet(&self) -> Result<(), Box<dyn std::error::Error>> {
-    
-        let con_token = egg_mode::KeyPair::new(
-            "Gfm6epmHQwKoGveDpxCYBx94K", 
-            "hgcEDxLrLHR4NaZ3keW3KsolQCVOwok1sBcH3FDFKz8kZjsyyF"
-        );
-
-        let access_token = egg_mode::KeyPair::new(
-            "1423130622197866502-FOkh5uMFgxSD5z4kMRHwNeisVhnJMr", 
-            "H7lANRonTxXI54VKGqqty0UcSgIudzp3B09R8acM2roBW"
-        );
-
-        let token = egg_mode::Token::Access {
-            consumer: con_token,
-            access: access_token,
-        };
-
-        
-        let text = format!(
-            "Testing ... PEGZ #{} Event Type: {}",
-            self.asset.name, 
-            self.event_type
-        );
-
-        let image = reqwest::get(&self.asset.image_url)
+    pub async fn get_image(&self) -> Result<Bytes, Box<dyn std::error::Error>> {
+        let image: Bytes = reqwest::get(&self.asset.image_url)
             .await?
             .bytes()
             .await?;
 
-        let mut tweet = DraftTweet::new(text.clone());
-
-        let handle = upload_media(&image, &media_types::image_gif(), &token).await?;
-        tweet.add_media(handle.id);
-        tweet.send(&token).await?;        
-        println!("Tweeting again: '{}'", text);
-
-        Ok(())
+        Ok(image)
     }
+
 }

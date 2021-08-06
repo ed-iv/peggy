@@ -7,6 +7,16 @@ mod types;
 use core::time;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::thread::sleep;
+use dotenv::dotenv;
+use std::env;
+use types::*;
+use chrono::prelude::*;
+use chrono::{DateTime, Utc};
+mod tweeter;
+
+use tweeter::Tweeter;
+
+use std::fmt::Display;
 
 
 use reqwest::Url;
@@ -15,39 +25,34 @@ use crate::types::{Obj};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
-    let mut last_update = SystemTime::now();
-          
-    loop {
         
-        let mut timestamp = last_update
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();    
+    let timestamp = Utc::now().timestamp();
+    let mut peggy = Peggy::new(
+        String::from("https://api.opensea.io/api/v1/events"),
+        format!("{}", "1628203057"),
+        String::from("0x1eFf5ed809C994eE2f500F076cEF22Ef3fd9c25D"),                        
+        format!("{}", 10),
+    );
 
-        println!("Looking for events after {}...", timestamp);
-            
-        let request_url = format!(
-            "https://api.opensea.io/api/v1/events?asset_contract_address={contract}&only_opensea=false&offest={offset}&limit={limit}&occurred_after={occurred_after}",
-            contract = "0x1eFf5ed809C994eE2f500F076cEF22Ef3fd9c25D",
-            offset = 0,
-            limit = 1,
-            occurred_after = timestamp,
-        );
-        println!("{}", request_url);    
-        let response: Obj = reqwest::get(&request_url).await?.json().await?;            
-        
-        if let Some(events) = response.asset_events {
-            if (events.len() > 0) {
-                for event in events {            
-                    event.tweet().await?;                    
-                }
-                last_update = SystemTime::now();
-            } else {
-                println!("No events found...");    
+    let tweeter = Tweeter::new();
+
+    
+    loop {        
+        let events = peggy.fetch_events().await?;
+        if events.len() > 0 {
+            for event in events {
+                // if let EventType::Unknown = &event.event_type.as_str().into() {
+                //     continue;
+                // }
+                let notification = peggy.get_notification(event).await?;                
+                println!("{}", notification.message);
+                tweeter.tweet(notification).await?;
+                peggy.last = format!("{}", Utc::now().timestamp());
+
             }
+        } else {
+            println!("No events found...Sleeping");
         }
-        
         sleep(Duration::new(60, 0));   
     }
     
