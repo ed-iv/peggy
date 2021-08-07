@@ -16,7 +16,7 @@ use peggy::Peggy;
 use tweeter::Tweeter;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main(){
         
     let timestamp = include_str!("../last-fetch");
     
@@ -26,6 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         String::from("0x1eFf5ed809C994eE2f500F076cEF22Ef3fd9c25D"),                        
         format!("{}", 20),
     );
+    peggy.update_last_fetch();
     let tweeter = Tweeter::new();
 
     loop {                
@@ -57,5 +58,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("\n 💤 Peggy is Sleeping 💤 \n");        
         sleep(Duration::new(60, 0));   
     }
-    Ok(())
 }
