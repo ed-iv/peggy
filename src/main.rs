@@ -45,6 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("  💀 Unable to get notification from Event with ID: {}", event_id);
                         }                                                     
                     }
+                    peggy.update_last_fetch();
                 }else {
                     println!(" 😔 Peggy is sad; no events found");
                 }                    
@@ -52,8 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(err) => {
                 println!(" 💀 Unable to fetch events: {}", err);
             }
-        }
-        peggy.update_last_fetch();
+        }        
         println!("\n 💤 Peggy is Sleeping 💤 \n");        
         sleep(Duration::new(60, 0));   
     }
