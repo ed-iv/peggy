@@ -67,6 +67,7 @@ impl Notification {
 pub struct Event {
     pub id: u128,    
     pub event_type: String, 
+    pub auction_type: Option<String>, 
     pub asset: Pegz,    
     pub payment_token: Option<PaymentToken>,
     pub total_price: Option<String>,

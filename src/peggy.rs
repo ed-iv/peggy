@@ -136,8 +136,23 @@ impl Peggy {
                 }                             
             },
             EventType::List => {   
-                match &event.asset.owner.user.username {
-                    Some(owner) => {
+                let auction_type = &event.auction_type.ok_or("No auction type.").unwrap();
+                let mut owner = String::from("someone");
+                if let Some(name) =  &event.asset.owner.user.username {
+                    owner = name.clone(); 
+                }
+                match auction_type.as_str() {
+                    "english" => {
+                        format!(
+                            "{exclamation}, {owner} just started an auction just started for {pegz_name} with a starting price of {owner} just started just listed {pegz_name} for {price} {symbol}!",
+                            exclamation = exclamation,
+                            owner = owner,
+                            pegz_name = pegz_name,
+                            price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
+                            symbol = symbol,
+                        )
+                    },                     
+                    _ => {
                         format!(
                             "{exclamation}, {owner} just listed {pegz_name} for {price} {symbol}!",
                             exclamation = exclamation,
@@ -145,21 +160,9 @@ impl Peggy {
                             pegz_name = pegz_name,
                             price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
                             symbol = symbol,
-        
-                        )
-                    },
-                    None => {
-                        format!(
-                            "{exclamation}, somebody just listed {pegz_name} for {price} {symbol}!",
-                            exclamation = exclamation,
-                            pegz_name = pegz_name,
-                            price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
-                            symbol = symbol,
-        
                         )
                     }
                 }
-                
             },
             EventType::Sale => {
                 match &event.asset.owner.user.username {
