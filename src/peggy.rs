@@ -95,16 +95,14 @@ impl Peggy {
         } 
         let image = event.get_image().await?;
 
-        let event_type: EventType = event.event_type.as_str().into();
-        let exclamation = self.get_exclamation();
+        let event_type: EventType = event.event_type.as_str().into();        
         let message = match event_type.clone() {
             EventType::Bid => {          
                 if let Some(from_account) = &event.from_account {
                     match &from_account.user.username {
                         Some(bidder) => {                                                                      
                             let mut message = format!(
-                                "{exclamation}, {bidder} just bid {amount} {symbol} on {pegz_name}!", 
-                                exclamation = exclamation,
+                                "{bidder} just bid {amount} {symbol} on {pegz_name}!",                                 
                                 bidder = bidder,                                
                                 amount = in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
                                 symbol = symbol,      
@@ -117,8 +115,7 @@ impl Peggy {
                         },
                         None => {
                             format!(
-                                "{}, somebody just bid {} {} on {}!", 
-                                exclamation,                   
+                                "Somebody just bid {} {} on {}!",                                                    
                                 in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
                                 symbol,
                                 pegz_name,                                                                
@@ -127,8 +124,7 @@ impl Peggy {
                     }
                 } else {
                     format!(
-                        "{}, somebody just bid {} {} on {}!", 
-                        exclamation,                   
+                        "Somebody just bid {} {} on {}!",                         
                         in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
                         symbol,
                         pegz_name,                                                                
@@ -144,8 +140,7 @@ impl Peggy {
                 match auction_type.as_str() {
                     "english" => {
                         format!(
-                            "{exclamation}, {owner} just started an auction just started for {pegz_name} with a starting price of {owner} just started just listed {pegz_name} for {price} {symbol}!",
-                            exclamation = exclamation,
+                            "{owner} just started an auction just started for {pegz_name} with a starting price of {owner} just started just listed {pegz_name} for {price} {symbol}!",                            
                             owner = owner,
                             pegz_name = pegz_name,
                             price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
@@ -154,8 +149,7 @@ impl Peggy {
                     },                     
                     _ => {
                         format!(
-                            "{exclamation}, {owner} just listed {pegz_name} for {price} {symbol}!",
-                            exclamation = exclamation,
+                            "{owner} just listed {pegz_name} for {price} {symbol}!",                            
                             owner = owner,
                             pegz_name = pegz_name,
                             price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
@@ -168,8 +162,7 @@ impl Peggy {
                 match &event.asset.owner.user.username {
                     Some(new_owner) => {
                         format!(
-                            "{exclamation}, {new_owner} just bought {pegz_name} for {amount} {symbol}!",
-                            exclamation = exclamation,
+                            "{new_owner} just bought {pegz_name} for {amount} {symbol}!",                            
                             new_owner = new_owner,
                             pegz_name = pegz_name,
                             amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
@@ -178,8 +171,7 @@ impl Peggy {
                     },
                     None => {
                         format!(
-                            "{exclamation}, some lucky bastard just bought {pegz_name} for {amount} {symbol}!",
-                            exclamation = exclamation,                            
+                            "Some lucky bastard just bought {pegz_name} for {amount} {symbol}!",                            
                             pegz_name = pegz_name,
                             amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
                             symbol = symbol,
