@@ -1,5 +1,5 @@
 [package]
-name = "pegz-bot"
+name = "peggy"
 version = "0.1.0"
 authors = ["Ed Henriques IV (ediv) <ehenriquesiv@gmail.com>"]
 edition = "2018"
