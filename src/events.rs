@@ -10,7 +10,7 @@ pub struct Obj {
 
 #[derive(Deserialize, Debug)]
 pub struct Person {
-   pub user: User,      
+   pub user: Option<User>,      
 }
 
 #[derive(Deserialize, Debug)]

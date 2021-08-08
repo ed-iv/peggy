@@ -63,6 +63,10 @@ impl Peggy {
         }
     }
 
+    pub fn start_from_last_fetch(&mut self) {        
+        self.last = String::from(include_str!("../last-fetch"));
+    }
+
     pub async fn fetch_events(&self) -> Result<Vec<Event>, Box<dyn std::error::Error>> {
         let url = self.build_url()?;        
         println!("Fetching Events @ {}\n", self.last);
@@ -99,29 +103,39 @@ impl Peggy {
         let message = match event_type.clone() {
             EventType::Bid => {          
                 if let Some(from_account) = &event.from_account {
-                    match &from_account.user.username {
-                        Some(bidder) => {                                                                      
-                            let mut message = format!(
-                                "{bidder} just bid {amount} {symbol} on {pegz_name}!",                                 
-                                bidder = bidder,                                
-                                amount = in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
-                                symbol = symbol,      
-                                pegz_name = pegz_name,                                                                  
-                            );
-                            if let Some(owner) = &event.asset.owner.user.username {
-                                message = format!("{}\nWhat you goanna do about it, {}", message, owner);
+                    if let Some(user) = &from_account.user {
+                        match &user.username {
+                            Some(bidder) => {                                                                      
+                                let mut message = format!(
+                                    "{bidder} just bid {amount} {symbol} on {pegz_name}!",                                 
+                                    bidder = bidder,                                
+                                    amount = in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                                    symbol = symbol,      
+                                    pegz_name = pegz_name,                                                                  
+                                );
+                                // if let Some(owner) = &event.asset.owner.user.username {
+                                //     message = format!("{}\nWhat you goanna do about it, {}", message, owner);
+                                // }
+                                message
+                            },
+                            None => {
+                                format!(
+                                    "Somebody just bid {} {} on {}!",                                                    
+                                    in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                                    symbol,
+                                    pegz_name,                                                                
+                                )
                             }
-                            message
-                        },
-                        None => {
-                            format!(
-                                "Somebody just bid {} {} on {}!",                                                    
-                                in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
-                                symbol,
-                                pegz_name,                                                                
-                            )
                         }
+                    } else {
+                        format!(
+                            "Somebody just bid {} {} on {}!",                                                    
+                            in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                            symbol,
+                            pegz_name,                                                                
+                        )
                     }
+                    
                 } else {
                     format!(
                         "Somebody just bid {} {} on {}!",                         
@@ -134,9 +148,12 @@ impl Peggy {
             EventType::List => {   
                 let auction_type = &event.auction_type.ok_or("No auction type.").unwrap();
                 let mut owner = String::from("someone");
-                if let Some(name) =  &event.asset.owner.user.username {
-                    owner = name.clone(); 
+                if let Some(user) = &event.asset.owner.user {
+                    if let Some(name) =  &user.username {
+                        owner = name.clone(); 
+                    }
                 }
+                
                 match auction_type.as_str() {
                     "english" => {
                         format!(
@@ -159,26 +176,35 @@ impl Peggy {
                 }
             },
             EventType::Sale => {
-                match &event.asset.owner.user.username {
-                    Some(new_owner) => {
-                        format!(
-                            "{new_owner} just bought {pegz_name} for {amount} {symbol}!",                            
-                            new_owner = new_owner,
-                            pegz_name = pegz_name,
-                            amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
-                            symbol = symbol,
-                        )
-                    },
-                    None => {
-                        format!(
-                            "Some lucky bastard just bought {pegz_name} for {amount} {symbol}!",                            
-                            pegz_name = pegz_name,
-                            amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
-                            symbol = symbol,
-                        )
-                    },
-                }                
-                
+                if let Some(user) = &event.asset.owner.user {
+                    match &user.username {
+                        Some(new_owner) => {
+                            format!(
+                                "{new_owner} just bought {pegz_name} for {amount} {symbol}!",                            
+                                new_owner = new_owner,
+                                pegz_name = pegz_name,
+                                amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
+                                symbol = symbol,
+                            )
+                        },
+                        None => {
+                            format!(
+                                "Some lucky bastard just bought {pegz_name} for {amount} {symbol}!",                            
+                                pegz_name = pegz_name,
+                                amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
+                                symbol = symbol,
+                            )
+                        },
+                    }  
+                } else {
+                    format!(
+                        "Some lucky bastard just bought {pegz_name} for {amount} {symbol}!",                            
+                        pegz_name = pegz_name,
+                        amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
+                        symbol = symbol,
+                    )
+                }
+                        
             },
             EventType::Unknown => {
                 format!("Unknown event type")

@@ -26,7 +26,7 @@ async fn main(){
         String::from("0x1eFf5ed809C994eE2f500F076cEF22Ef3fd9c25D"),                        
         format!("{}", 20),
     );
-    peggy.update_last_fetch();
+    peggy.start_from_last_fetch();
     let tweeter = Tweeter::new();
 
     loop {                
