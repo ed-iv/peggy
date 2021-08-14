@@ -2,7 +2,11 @@ use reqwest::Url;
 use std::io::Write;
 use std::fs::OpenOptions;
 use rand::Rng;
+use num_format::{Buffer, Locale, ToFormattedString};
 use crate::*;
+
+
+const WEI: u64 = 1_000_000_000_000_000_000;  
 
 #[derive(Debug)]
 pub struct Peggy {   
@@ -11,6 +15,37 @@ pub struct Peggy {
     pub contract: String,    
     pub limit: String,
     pub exclamations: [String; 4],
+}
+
+pub fn in_eth(amount: &str) -> f64 {
+    amount.parse::<u128>().unwrap() as f64 / WEI as f64
+}
+
+pub fn in_stable_coin(amount: &str) -> f64 {
+    amount.parse::<u128>().unwrap() as f64 / 1_000_000 as f64    
+}
+
+pub fn format_num(num: f64) -> String {
+    let whole: u32 = num.floor() as u32;
+    let part = num - num.floor(); 
+
+    let whole = whole.to_formatted_string(&Locale::en);
+
+    if (part > 0.0) {
+        format!("{}.{}", whole, part)
+    } else {
+        format!("{}", whole)
+    }
+}
+
+pub fn format_currency(amount: &str, symbol: &str) -> String {
+   match symbol {
+       "ETH" => format_num(in_eth(amount)),
+       "USDC" => format_num(in_stable_coin(amount)),
+       "DAI" => format_num(in_stable_coin(amount)),
+       _ => format!("{}", amount),
+   }
+    
 }
 
 impl Peggy {
@@ -112,10 +147,7 @@ impl Peggy {
                                     amount = in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
                                     symbol = symbol,      
                                     pegz_name = pegz_name,                                                                  
-                                );
-                                // if let Some(owner) = &event.asset.owner.user.username {
-                                //     message = format!("{}\nWhat you goanna do about it, {}", message, owner);
-                                // }
+                                );                                
                                 message
                             },
                             None => {
@@ -157,7 +189,7 @@ impl Peggy {
                 match auction_type.as_str() {
                     "english" => {
                         format!(
-                            "{owner} just started an auction just started for {pegz_name} with a starting price of {owner} just started just listed {pegz_name} for {price} {symbol}!",                            
+                            "{owner} just started an auction for {pegz_name} with a starting price of {price} {symbol}!",                            
                             owner = owner,
                             pegz_name = pegz_name,
                             price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
@@ -205,6 +237,50 @@ impl Peggy {
                     )
                 }
                         
+            },
+            EventType::Offer => {          
+                if let Some(from_account) = &event.from_account {
+                    if let Some(user) = &from_account.user {
+                        match &user.username {
+                            Some(bidder) => {                                                                      
+                                let message = format!(
+                                    "{bidder} just offered {amount} {symbol} for {pegz_name}!",                                 
+                                    bidder = bidder,                                
+                                    amount = format_currency(
+                                        event.bid_amount.unwrap_or(Default::default()).as_str(), 
+                                        symbol
+                                    ),                                    
+                                    symbol = symbol,      
+                                    pegz_name = pegz_name,                                                                  
+                                );                                
+                                message
+                            },
+                            None => {
+                                format!(
+                                    "Somebody just offered {} {} for {}!",                                                    
+                                    in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                                    symbol,
+                                    pegz_name,                                                                
+                                )
+                            }
+                        }
+                    } else {
+                        format!(
+                            "Somebody just offered {} {} for {}!",                                                    
+                            in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                            symbol,
+                            pegz_name,                                                                
+                        )
+                    }
+                    
+                } else {
+                    format!(
+                        "Somebody just offered {} {} for {}!",                         
+                        in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                        symbol,
+                        pegz_name,                                                                
+                    )
+                }                             
             },
             EventType::Unknown => {
                 format!("Unknown event type")

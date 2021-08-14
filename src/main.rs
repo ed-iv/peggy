@@ -41,7 +41,7 @@ async fn main(){
                                 println!("  💀 Failed to tweet notification: {}", err);
                             } else {
                                 println!(" 🦤  Peggy tweeted notification");
-                            }                                               
+                            }                                                                           
                         } else {
                             println!("  💀 Unable to get notification from Event with ID: {}", event_id);
                         }                                                     

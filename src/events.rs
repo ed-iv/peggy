@@ -1,7 +1,5 @@
 use serde::Deserialize;
 use bytes::Bytes;
-
-const WEI: u64 = 1_000_000_000_000_000_000;  
                
 #[derive(Deserialize, Debug)]
 pub struct Obj {
@@ -36,6 +34,7 @@ pub struct Pegz {
 pub enum EventType {
     Bid,
     List,
+    Offer,
     Sale,
     Unknown
 }
@@ -46,6 +45,7 @@ impl From<&str> for EventType {
             "successful" => EventType::Sale,
             "bid_entered" => EventType::Bid,
             "created" => EventType::List,
+            "offer_entered" => EventType::Offer,
             _ => EventType::Unknown,
         }
     }    
@@ -76,11 +76,6 @@ pub struct Event {
     pub seller: Option<Person>,
     pub from_account: Option<Person>,
 }
-
-pub fn in_eth(amount: &str) -> f64 {
-    amount.parse::<u128>().unwrap() as f64 / WEI as f64
-}
-
 
 impl Event {    
     pub async fn get_image(&self) -> Result<Bytes, Box<dyn std::error::Error>> {
