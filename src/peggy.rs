@@ -40,10 +40,11 @@ pub fn format_num(num: f64) -> String {
 
 pub fn format_currency(amount: &str, symbol: &str) -> String {
    match symbol {
-       "ETH" => format_num(in_eth(amount)),
-       "USDC" => format_num(in_stable_coin(amount)),
-       "DAI" => format_num(in_stable_coin(amount)),
-       _ => format!("{}", amount),
+        "WETH" => format_num(in_eth(amount)),   
+        "ETH" => format_num(in_eth(amount)),
+        "USDC" => format_num(in_stable_coin(amount)),
+        "DAI" => format_num(in_stable_coin(amount)),
+        _ => format!("{}", amount),
    }
     
 }
@@ -137,6 +138,10 @@ impl Peggy {
         let event_type: EventType = event.event_type.as_str().into();        
         let message = match event_type.clone() {
             EventType::Bid => {          
+                let amount = format_currency(
+                    event.bid_amount.unwrap_or(Default::default()).as_str(), 
+                    symbol
+                );
                 if let Some(from_account) = &event.from_account {
                     if let Some(user) = &from_account.user {
                         match &user.username {
@@ -144,7 +149,7 @@ impl Peggy {
                                 let mut message = format!(
                                     "{bidder} just bid {amount} {symbol} on {pegz_name}!",                                 
                                     bidder = bidder,                                
-                                    amount = in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                                    amount = amount,
                                     symbol = symbol,      
                                     pegz_name = pegz_name,                                                                  
                                 );                                
@@ -153,7 +158,7 @@ impl Peggy {
                             None => {
                                 format!(
                                     "Somebody just bid {} {} on {}!",                                                    
-                                    in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                                    amount,
                                     symbol,
                                     pegz_name,                                                                
                                 )
@@ -162,7 +167,7 @@ impl Peggy {
                     } else {
                         format!(
                             "Somebody just bid {} {} on {}!",                                                    
-                            in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                            amount,
                             symbol,
                             pegz_name,                                                                
                         )
@@ -171,7 +176,7 @@ impl Peggy {
                 } else {
                     format!(
                         "Somebody just bid {} {} on {}!",                         
-                        in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                        amount,
                         symbol,
                         pegz_name,                                                                
                     )
@@ -185,14 +190,17 @@ impl Peggy {
                         owner = name.clone(); 
                     }
                 }
-                
+                let starting_price = format_currency(
+                    event.starting_price.unwrap_or(Default::default()).as_str(), 
+                    symbol
+                );
                 match auction_type.as_str() {
                     "english" => {
                         format!(
                             "{owner} just started an auction for {pegz_name} with a starting price of {price} {symbol}!",                            
                             owner = owner,
                             pegz_name = pegz_name,
-                            price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
+                            price = starting_price,
                             symbol = symbol,
                         )
                     },                     
@@ -201,13 +209,17 @@ impl Peggy {
                             "{owner} just listed {pegz_name} for {price} {symbol}!",                            
                             owner = owner,
                             pegz_name = pegz_name,
-                            price = in_eth(event.starting_price.unwrap_or(Default::default()).as_str()),
+                            price = starting_price,
                             symbol = symbol,
                         )
                     }
                 }
             },
             EventType::Sale => {
+                let total_price = format_currency(
+                    event.total_price.unwrap_or(Default::default()).as_str(), 
+                    symbol
+                );
                 if let Some(user) = &event.asset.owner.user {
                     match &user.username {
                         Some(new_owner) => {
@@ -215,7 +227,7 @@ impl Peggy {
                                 "{new_owner} just bought {pegz_name} for {amount} {symbol}!",                            
                                 new_owner = new_owner,
                                 pegz_name = pegz_name,
-                                amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
+                                amount = total_price,
                                 symbol = symbol,
                             )
                         },
@@ -223,7 +235,7 @@ impl Peggy {
                             format!(
                                 "Some lucky bastard just bought {pegz_name} for {amount} {symbol}!",                            
                                 pegz_name = pegz_name,
-                                amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
+                                amount = total_price,
                                 symbol = symbol,
                             )
                         },
@@ -232,13 +244,17 @@ impl Peggy {
                     format!(
                         "Some lucky bastard just bought {pegz_name} for {amount} {symbol}!",                            
                         pegz_name = pegz_name,
-                        amount = in_eth(event.total_price.unwrap_or(Default::default()).as_str()),
+                        amount = total_price,
                         symbol = symbol,
                     )
                 }
                         
             },
-            EventType::Offer => {          
+            EventType::Offer => {    
+                let amount = format_currency(
+                    event.bid_amount.unwrap_or(Default::default()).as_str(), 
+                    symbol
+                );      
                 if let Some(from_account) = &event.from_account {
                     if let Some(user) = &from_account.user {
                         match &user.username {
@@ -246,10 +262,7 @@ impl Peggy {
                                 let message = format!(
                                     "{bidder} just offered {amount} {symbol} for {pegz_name}!",                                 
                                     bidder = bidder,                                
-                                    amount = format_currency(
-                                        event.bid_amount.unwrap_or(Default::default()).as_str(), 
-                                        symbol
-                                    ),                                    
+                                    amount = amount,                                
                                     symbol = symbol,      
                                     pegz_name = pegz_name,                                                                  
                                 );                                
@@ -258,7 +271,7 @@ impl Peggy {
                             None => {
                                 format!(
                                     "Somebody just offered {} {} for {}!",                                                    
-                                    in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                                    amount,
                                     symbol,
                                     pegz_name,                                                                
                                 )
@@ -267,7 +280,7 @@ impl Peggy {
                     } else {
                         format!(
                             "Somebody just offered {} {} for {}!",                                                    
-                            in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                            amount,
                             symbol,
                             pegz_name,                                                                
                         )
@@ -276,7 +289,7 @@ impl Peggy {
                 } else {
                     format!(
                         "Somebody just offered {} {} for {}!",                         
-                        in_eth(event.bid_amount.unwrap_or(Default::default()).as_str()),
+                        amount,
                         symbol,
                         pegz_name,                                                                
                     )
