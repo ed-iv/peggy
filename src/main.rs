@@ -37,11 +37,11 @@ async fn main(){
                         let mut event_id = &event.id.clone();                    
                         if let Ok(notification) = peggy.get_notification(event).await {
                             println!(" 🎯 {}", notification.message);                
-                            // if let Err(err) = tweeter.tweet(notification).await {
-                            //     println!("  💀 Failed to tweet notification: {}", err);
-                            // } else {
-                            //     println!(" 🦤  Peggy tweeted notification");
-                            // }                                                                           
+                            if let Err(err) = tweeter.tweet(notification).await {
+                                println!("  💀 Failed to tweet notification: {}", err);
+                            } else {
+                                println!(" 🦤  Peggy tweeted notification");
+                            }                                                                           
                         } else {
                             println!("  💀 Unable to get notification from Event with ID: {}", event_id);
                         }                                                     
