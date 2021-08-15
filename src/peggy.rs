@@ -28,11 +28,13 @@ pub fn in_stable_coin(amount: &str) -> f64 {
 pub fn format_num(num: f64) -> String {
     let whole: u32 = num.floor() as u32;
     let part = num - num.floor(); 
+    let mut partString = &format!("{:.2}", part)[2..];
+    partString = partString.trim_end_matches(|c| c == '0');
 
     let whole = whole.to_formatted_string(&Locale::en);
 
     if (part > 0.0) {
-        format!("{}.{}", whole, part)
+        format!("{}.{}", whole, partString)
     } else {
         format!("{}", whole)
     }
