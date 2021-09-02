@@ -36,12 +36,16 @@ async fn main(){
                     for event in events {
                         let mut event_id = &event.id.clone();                    
                         if let Ok(notification) = peggy.get_notification(event).await {
-                            println!(" 🎯 {}", notification.message);                
-                            if let Err(err) = tweeter.tweet(notification).await {
-                                println!("  💀 Failed to tweet notification: {}", err);
+                            if (!notification.message.is_empty()) {
+                                println!(" 🎯 {}", notification.message);                
+                                if let Err(err) = tweeter.tweet(notification).await {
+                                    println!("  💀 Failed to tweet notification: {}", err);
+                                } else {
+                                    println!(" 🦤  Peggy tweeted notification");
+                                }     
                             } else {
-                                println!(" 🦤  Peggy tweeted notification");
-                            }                                                                           
+                                println!("💀 Message was empty, ignoring!");                    
+                            }                                                                                                  
                         } else {
                             println!("  💀 Unable to get notification from Event with ID: {}", event_id);
                         }                                                     

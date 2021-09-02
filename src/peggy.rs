@@ -7,6 +7,7 @@ use crate::*;
 
 
 const WEI: u64 = 1_000_000_000_000_000_000;  
+const MIN_BID: f64 = 50.0; 
 
 #[derive(Debug)]
 pub struct Peggy {   
@@ -21,11 +22,22 @@ pub fn in_eth(amount: &str) -> f64 {
     amount.parse::<u128>().unwrap() as f64 / WEI as f64
 }
 
-pub fn in_stable_coin(amount: &str) -> f64 {
-    amount.parse::<u128>().unwrap() as f64 / 1_000_000 as f64    
+pub fn in_stable_coin(amount: &str, symbol: &str) -> f64 {
+    match symbol { 
+        "USDC" => {
+            amount.parse::<u128>().unwrap() as f64 / 1_000_000 as f64   
+        },
+        "DAI" => {
+            amount.parse::<u128>().unwrap() as f64 /                  1_000_000_000_000_000_000.0
+        },
+        _ => 0.0
+    }
 }
 
 pub fn format_num(num: f64) -> String {
+    if (num < MIN_BID) {
+        return String::default();
+    }
     let whole: u32 = num.floor() as u32;
     let part = num - num.floor(); 
     let mut partString = &format!("{:.2}", part)[2..];
@@ -44,9 +56,9 @@ pub fn format_currency(amount: &str, symbol: &str) -> String {
    match symbol {
         "WETH" => format_num(in_eth(amount)),   
         "ETH" => format_num(in_eth(amount)),
-        "USDC" => format_num(in_stable_coin(amount)),
-        "DAI" => format_num(in_stable_coin(amount)),
-        _ => format!("{}", amount),
+        // "USDC" => format_num(in_stable_coin(amount, symbol)),
+        // "DAI" => format_num(in_stable_coin(amount, symbol)),
+        _ => String::default(),
    }
     
 }
@@ -257,45 +269,50 @@ impl Peggy {
                     event.bid_amount.unwrap_or(Default::default()).as_str(), 
                     symbol
                 );      
-                if let Some(from_account) = &event.from_account {
-                    if let Some(user) = &from_account.user {
-                        match &user.username {
-                            Some(bidder) => {                                                                      
-                                let message = format!(
-                                    "{bidder} just offered {amount} {symbol} for {pegz_name}!",                                 
-                                    bidder = bidder,                                
-                                    amount = amount,                                
-                                    symbol = symbol,      
-                                    pegz_name = pegz_name,                                                                  
-                                );                                
-                                message
-                            },
-                            None => {
-                                format!(
-                                    "Somebody just offered {} {} for {}!",                                                    
-                                    amount,
-                                    symbol,
-                                    pegz_name,                                                                
-                                )
+                if (amount.is_empty()) {
+                    String::default()
+                } else {
+                    if let Some(from_account) = &event.from_account {
+                        if let Some(user) = &from_account.user {
+                            match &user.username {
+                                Some(bidder) => {                                                                      
+                                    let message = format!(
+                                        "{bidder} just offered {amount} {symbol} for {pegz_name}!",                                 
+                                        bidder = bidder,                                
+                                        amount = amount,                                
+                                        symbol = symbol,      
+                                        pegz_name = pegz_name,                                                                  
+                                    );                                
+                                    message
+                                },
+                                None => {
+                                    format!(
+                                        "Somebody just offered {} {} for {}!",                                                    
+                                        amount,
+                                        symbol,
+                                        pegz_name,                                                                
+                                    )
+                                }
                             }
+                        } else {
+                            format!(
+                                "Somebody just offered {} {} for {}!",                                                    
+                                amount,
+                                symbol,
+                                pegz_name,                                                                
+                            )
                         }
+                        
                     } else {
                         format!(
-                            "Somebody just offered {} {} for {}!",                                                    
+                            "Somebody just offered {} {} for {}!",                         
                             amount,
                             symbol,
                             pegz_name,                                                                
                         )
-                    }
-                    
-                } else {
-                    format!(
-                        "Somebody just offered {} {} for {}!",                         
-                        amount,
-                        symbol,
-                        pegz_name,                                                                
-                    )
-                }                             
+                    } 
+                }
+                                            
             },
             EventType::Unknown => {
                 format!("Unknown event type")
